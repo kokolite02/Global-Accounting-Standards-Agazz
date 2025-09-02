@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  role      Role     @default(USER)
+  orgs      Membership[]
+  questions Question[]
+  answers   Answer[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Organization {
+  id        String        @id @default(cuid())
+  name      String
+  members   Membership[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Membership {
+  id        String        @id @default(cuid())
+  user      User          @relation(fields: [userId], references: [id])
+  userId    String
+  org       Organization  @relation(fields: [orgId], references: [id])
+  orgId     String
+  role      OrgRole       @default(VIEWER)
+  createdAt DateTime      @default(now())
+}
+
+model Standard {
+  id        String    @id @default(cuid())
+  code      String
+  title     String
+  summary   String?
+  content   String
+  versions  StandardVersion[]
+  tags      TagOnStandard[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  @@index([code])
+}
+
+model StandardVersion {
+  id        String   @id @default(cuid())
+  standard  Standard @relation(fields: [standardId], references: [id])
+  standardId String
+  version   String
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model Tag {
+  id     String @id @default(cuid())
+  name   String @unique
+  standards TagOnStandard[]
+}
+
+model TagOnStandard {
+  standard   Standard @relation(fields: [standardId], references: [id])
+  standardId String
+  tag        Tag      @relation(fields: [tagId], references: [id])
+  tagId      String
+  @@id([standardId, tagId])
+}
+
+model Question {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  answers   Answer[]
+  createdAt DateTime @default(now())
+}
+
+model Answer {
+  id        String   @id @default(cuid())
+  body      String
+  question  Question @relation(fields: [questionId], references: [id])
+  questionId String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  target    String   // e.g., "standard:{id}" or "question:{id}"
+  body      String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  target    String?
+  meta      Json?
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrgRole {
+  VIEWER
+  EDITOR
+  OWNER
+}
